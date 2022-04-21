@@ -2,19 +2,29 @@ from cmath import log
 import hashlib
 import csv
 import sys
+import os
 import math
 import pandas as pd
 
 # USE THIS SPACE TO RETRIEVE COMMAND LINE 
 # ARGUMENTS AND CREATE GLOBAL VARIABLES
 
+# inputSamples will be first argument, checkList is second
+samples = sys.argv[1]
+check = sys.argv[2]
 
-# Has to be changed to CML values later
-inputSample = pd.read_csv("samples.csv")
-checkSample = pd.read_csv("check.csv")
+samplesCSV = os.path.abspath(samples)
+checkCSV = os.path.abspath(check)
+
+#Statement below is used to then get the length of our input with pandas
+inputSample = pd.read_csv(samplesCSV)
+
 
 inputLen = len(inputSample.axes[0]) + 1
-checkLen = len(checkSample.axes[0]) + 1
+
+# Just checking that the length is right
+# print(inputLen)
+
 
 
 # COMMENCE THE BLOOM FILTER CLASS
@@ -22,7 +32,11 @@ checkLen = len(checkSample.axes[0]) + 1
 class bloomFilter:
 
     # BloomFilter constructor
-    # Parameters: (check CIIC 4020 Labs for format)
+    # Parameters:
+    #   n is the size of our input
+    #   p is our false-positive rate (hardcoded)
+    #   m is the number of bits needed in the bloomFilter (calculated)
+    #   k is the amount of hash functions we will need, seen in later methods (calculated)
     def __init__(self, n):
         self.n = n
         self.p = 0.0000001
@@ -31,14 +45,14 @@ class bloomFilter:
         # FORMULA EXTRACTED FROM:
         # https://hur.st/bloomfilter/
 
-        self.filter = [0 for i in range(self.m)]
+        self.filter = [0] * self.m
         # Initialize our bloom filter with 0's which will
         # indicate that it is completely empty
         self.filterSize = len(self.filter)
 
 
     # Hashes the input the necessary amount of times
-    # s : input
+    # s : input email
     def hashing(self, s):
 
         k = round((self.m / self.n) * math.log(2))
@@ -46,16 +60,18 @@ class bloomFilter:
 
         for i in range(k):
 
-            if i % 2 == 0:
-                add = int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10 ** (i + 1)) * (i + 1) % self.filterSize
 
-            else:
-                add = abs(hash(s)) % (10 ** 6) * (i + 1) % self.filterSize
+            add = int(hashlib.sha256(s.encode("utf-8")).hexdigest(), 16) % (10 ** (i + 1)) % BF.filterSize
+            # add = int(hashlib.sha224(s.encode("utf-8")).hexdigest(), 16) % (10 ** (i + 1)) % BF.filterSize
+
 
             hashes.append(add)
 
         return hashes
 
+    # use this method to add the emails to our bloomFilter
+    # we get their hashes and input their index onto the bloomFilter list
+    # Parameter: s input email
     def add(self, input):
 
         hashes = self.hashing(input)
@@ -65,6 +81,9 @@ class bloomFilter:
             # We use a 1 to indicate that this index
             # has been used by a hashed input 
 
+    # Similar to the add method, we get the hashes and verify if these are in the list
+    # Were it not to be in the list, we assure that it is not in the DB
+    # Parameter: s input emails
     def check(self, input):
 
         hashes = self.hashing(input)
@@ -90,13 +109,26 @@ BF = bloomFilter(inputLen)
 # NOW THAT OUR BLOOM FILTER IS INITIALIZED
 # ALL THAT IS LEFT IS TO ENTER OUR SAMPLES
 
-with open("samples.csv", 'r') as inputFile:
+with open(samplesCSV, 'r') as inputFile:
     inputReader = csv.reader(inputFile)
 
     for line in inputReader:
         BF.add(line[0])
 
-print(BF.filter)
+
+with open("results.csv", 'w') as results:
+
+    # Remember to change to open(checkArg)
+    with open(checkCSV, 'r') as check_file:
+        csv_reader = csv.reader(check_file)
+
+        fieldnames = ['Email', 'Probability']
+        results_writer = csv.DictWriter(results, fieldnames=fieldnames)
+
+        results_writer.writeheader()
+
+        for line in csv_reader:
+            results_writer.writerow({'Email': line[0], 'Probability': BF.check(line[0])})
 
 
-# Observation, hash gives different results per run, ask professor
+
