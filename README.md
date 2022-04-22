@@ -10,4 +10,6 @@ _**k**_ :  the number of hash functions necessary
 
 # Formulae:
 
+_**Extracted from**_ : https://hur.st/bloomfilter/
+
 
