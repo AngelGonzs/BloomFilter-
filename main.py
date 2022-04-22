@@ -42,16 +42,23 @@ class bloomFilter:
         self.p = 0.0000001
         self.m = math.ceil((n * math.log(self.p)) / math.log(1 / pow(2, math.log(2))))
 
-        # FORMULA EXTRACTED FROM:
+        # FORMULAE EXTRACTED FROM:
         # https://hur.st/bloomfilter/
 
         self.filter = [0] * self.m
         # Initialize our bloom filter with 0's which will
         # indicate that it is completely empty
         self.filterSize = len(self.filter)
+        # doing this for cleaning up code when calculating k later on
 
 
     # Hashes the input the necessary amount of times
+    # We use hashing based on SHA256 and use modulus of the size of the filter to avoid any index errors
+    # The usage of the i in the for loop lets us do the following:
+    #      We divide the filter in <= k sections which will be determined to 10^i (i in range (k))
+    #      Doing this we hope to have 1 or 2 hashes per section for each of our inputs, optimally 1 per section
+    #
+    # Parameters:
     # s : input email
     def hashing(self, s):
 
@@ -116,6 +123,8 @@ with open(samplesCSV, 'r') as inputFile:
         BF.add(line[0])
 
 
+# Now we create the results.csv file and use our check method in BF
+# To determine whether the inputs might be in our DB or not.
 with open("results.csv", 'w') as results:
 
     # Remember to change to open(checkArg)
